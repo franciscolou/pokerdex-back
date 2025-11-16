@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  backend:
+    build: .
+    container_name: pokerdex_back
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      DJANGO_SETTINGS_MODULE: "pokerdex_back.settings"
+    command: >
+      bash -c "python manage.py migrate &&
+               python manage.py runserver 0.0.0.0:8000"
