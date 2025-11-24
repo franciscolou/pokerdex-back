@@ -24,6 +24,8 @@ from .permissions import (
 )
 
 
+from django.db.models import Count, Max
+
 # ----------------------------------------------------
 #
 # GROUPS
@@ -35,6 +37,43 @@ class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer
     permission_classes = [IsAuthenticated]
 
+    lookup_field = "slug"
+    
+    def list(self, request, *args, **kwargs):
+        user = request.user
+
+        # Meus grupos (onde sou membro)
+        my_groups = (
+            Group.objects.filter(memberships__user=user)
+            .annotate(
+                member_count=Count("memberships", distinct=True),
+                post_count=Count("posts", distinct=True),
+                last_post=Max("posts__posted_at")
+            )
+            .distinct()
+        )
+
+        # Outros grupos (onde NÃO sou membro)
+        other_groups = (
+            Group.objects.exclude(memberships__user=user)
+            .annotate(
+                member_count=Count("memberships", distinct=True),
+                post_count=Count("posts", distinct=True),
+                last_post=Max("posts__posted_at")
+            )
+            .distinct()
+        )
+
+        # Serialização separada
+        my_data = GroupSerializer(my_groups, many=True, context={"request": request}).data
+        other_data = GroupSerializer(other_groups, many=True, context={"request": request}).data
+
+        return Response({
+            "myGroups": my_data,
+            "otherGroups": other_data,
+        })
+
+    
     def perform_create(self, serializer):
         """Criar grupo + adicionar criador como admin"""
         with transaction.atomic():
@@ -195,14 +234,13 @@ class GameViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         game = serializer.save(created_by=self.request.user)
-        group_ids = self.request.data.get("groups", [])
+        group_id = self.request.data.get("group")
 
-        for gid in group_ids:
-            GroupPost.objects.get_or_create(
-                game=game,
-                group_id=gid,
-                defaults={"posted_by": self.request.user}
-            )
+        GamePost.objects.get_or_create(
+            game=game,
+            group_id=group_id,
+            defaults={"posted_by": self.request.user}
+        )
 
     @action(detail=True, methods=["post"])
     def add_participation(self, request, pk=None):
