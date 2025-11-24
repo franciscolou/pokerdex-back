@@ -185,9 +185,9 @@ class Game(models.Model):
     )
     created_at = models.DateTimeField(default=timezone.now)
 
-    groups = models.ManyToManyField(
+    group = models.ForeignKey(
         Group,
-        through="GamePost",
+        on_delete=models.CASCADE,
         related_name="games"
     )
 

@@ -140,14 +140,17 @@ class GameParticipationSerializer(serializers.ModelSerializer):
         return participation
 
 
+class GroupMiniSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+        fields = ["id", "name", "slug"]
+
 class GameSerializer(serializers.ModelSerializer):
     created_by = UserSerializer(read_only=True)
 
-    groups = serializers.PrimaryKeyRelatedField(
-        many=True,
-        queryset=Group.objects.all(),
-        required=False,
-    )
+    group = GroupMiniSerializer(read_only=True)  # 👈 agora vem com slug
+
+    participations_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Game
@@ -159,6 +162,11 @@ class GameSerializer(serializers.ModelSerializer):
             "buy_in",
             "created_by",
             "created_at",
-            "groups",
+            "group",
+            "participations",
+            "participations_count",
         ]
         read_only_fields = ["created_by", "created_at"]
+
+    def get_participations_count(self, obj):
+        return obj.participations.count()
