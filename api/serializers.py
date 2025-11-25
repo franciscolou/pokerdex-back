@@ -33,6 +33,7 @@ class GroupSerializer(serializers.ModelSerializer):
     post_count = serializers.IntegerField(read_only=True)
     last_post = serializers.DateTimeField(read_only=True)
 
+    requested = serializers.BooleanField(read_only=True)
     class Meta:
         model = Group
         fields = [
@@ -45,10 +46,15 @@ class GroupSerializer(serializers.ModelSerializer):
             "member_count",
             "post_count",
             "last_post",
+            "requested",
         ]
         read_only_fields = ["slug", "created_by", "created_at"]
 
-
+    def get_requested(self, obj):
+        user = self.context["request"].user
+        return GroupRequest.objects.filter(group=obj, requested_by=user).exists(
+        )
+    
 class GroupDetailSerializer(serializers.ModelSerializer):
     created_by = UserSerializer(read_only=True)
     memberships = GroupMembershipSerializer(many=True, read_only=True)
@@ -60,6 +66,8 @@ class GroupDetailSerializer(serializers.ModelSerializer):
     recent_posts = serializers.SerializerMethodField()
     recent_games = serializers.SerializerMethodField()
 
+    already_requested = serializers.SerializerMethodField()
+    
     class Meta:
         model = Group
         fields = [
@@ -75,6 +83,7 @@ class GroupDetailSerializer(serializers.ModelSerializer):
             "is_creator",
             "recent_posts",
             "recent_games",
+            "already_requested",
         ]
 
     def get_is_member(self, obj):
@@ -99,6 +108,9 @@ class GroupDetailSerializer(serializers.ModelSerializer):
         games = Game.objects.filter(posts__group=obj).distinct().order_by("-date")[:10]
         return GameSerializer(games, many=True).data
 
+    def get_already_requested(self, obj):
+        user = self.context["request"].user
+        return GroupRequest.objects.filter(group=obj, requested_by=user).exists()
 
 class GroupRequestSerializer(serializers.ModelSerializer):
     requested_by = UserSerializer(read_only=True)
@@ -150,6 +162,7 @@ class GameSerializer(serializers.ModelSerializer):
 
     group = GroupMiniSerializer(read_only=True)  # 👈 agora vem com slug
 
+    participations = GameParticipationSerializer(many=True, read_only=True)
     participations_count = serializers.SerializerMethodField()
 
     class Meta:

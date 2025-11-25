@@ -147,7 +147,6 @@ class GroupRequest(models.Model):
         on_delete=models.CASCADE,
         related_name="group_requests"
     )
-    message = models.TextField(blank=True)
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -170,6 +169,7 @@ class Game(models.Model):
     Uma partida de poker. Pode ser postada em 1+ grupos.
     """
     title = models.CharField("Nome da partida", max_length=140, blank=True)
+    description = models.TextField("Descrição", blank=True)
     date = models.DateField("Data", default=timezone.localdate)
     location = models.CharField("Local", max_length=180, blank=True)
     buy_in = models.DecimalField(

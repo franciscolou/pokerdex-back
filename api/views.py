@@ -53,23 +53,30 @@ class GroupViewSet(viewsets.ModelViewSet):
             .distinct()
         )
 
-        # Outros grupos (onde NÃO sou membro)
+        requested_groups = Group.objects.filter(
+            join_requests__requested_by=user
+        )
+
+        # Outros grupos (onde NÃO sou membro e que eu não solicitei)
         other_groups = (
             Group.objects.exclude(memberships__user=user)
+            .exclude(join_requests__requested_by=user)
             .annotate(
-                member_count=Count("memberships", distinct=True),
-                post_count=Count("posts", distinct=True),
-                last_post=Max("posts__posted_at")
+            member_count=Count("memberships", distinct=True),
+            post_count=Count("posts", distinct=True),
+            last_post=Max("posts__posted_at")
             )
             .distinct()
         )
 
         # Serialização separada
         my_data = GroupSerializer(my_groups, many=True, context={"request": request}).data
+        requested_data = GroupSerializer(requested_groups, many=True, context={"request": request}).data
         other_data = GroupSerializer(other_groups, many=True, context={"request": request}).data
 
         return Response({
             "myGroups": my_data,
+            "requestedGroups": requested_data,
             "otherGroups": other_data,
         })
 
@@ -85,7 +92,7 @@ class GroupViewSet(viewsets.ModelViewSet):
             )
 
     @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
-    def join_request(self, request, pk=None):
+    def join_request(self, request, slug=None):
         group = self.get_object()
 
         if GroupMembership.objects.filter(group=group, user=request.user).exists():
@@ -96,6 +103,7 @@ class GroupViewSet(viewsets.ModelViewSet):
 
         GroupRequest.objects.create(group=group, requested_by=request.user)
         return Response({"detail": "Pedido enviado."})
+
 
     @action(
         detail=True,
