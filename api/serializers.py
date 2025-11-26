@@ -67,7 +67,7 @@ class GroupDetailSerializer(serializers.ModelSerializer):
     recent_games = serializers.SerializerMethodField()
 
     already_requested = serializers.SerializerMethodField()
-    
+    join_requests = serializers.SerializerMethodField()
     class Meta:
         model = Group
         fields = [
@@ -84,6 +84,7 @@ class GroupDetailSerializer(serializers.ModelSerializer):
             "recent_posts",
             "recent_games",
             "already_requested",
+            "join_requests",
         ]
 
     def get_is_member(self, obj):
@@ -106,18 +107,27 @@ class GroupDetailSerializer(serializers.ModelSerializer):
 
     def get_recent_games(self, obj):
         games = Game.objects.filter(posts__group=obj).distinct().order_by("-date")[:10]
-        return GameSerializer(games, many=True).data
+        return GameSerializer(games, many=True, context=self.context).data
 
     def get_already_requested(self, obj):
         user = self.context["request"].user
         return GroupRequest.objects.filter(group=obj, requested_by=user).exists()
+    
+    def get_join_requests(self, obj):
+        user = self.context["request"].user
+        if not GroupMembership.objects.filter(
+            group=obj, user=user, role=GroupMembership.Role.ADMIN
+        ).exists():
+            return []
+        requests = obj.join_requests.select_related("requested_by").order_by("-created_at")
+        return GroupRequestSerializer(requests, many=True).data
 
 class GroupRequestSerializer(serializers.ModelSerializer):
     requested_by = UserSerializer(read_only=True)
 
     class Meta:
         model = GroupRequest
-        fields = ["id", "group", "requested_by", "message", "created_at"]
+        fields = ["id", "group", "requested_by", "created_at"]
         read_only_fields = ["requested_by", "created_at"]
 
 
@@ -129,57 +139,65 @@ class GamePostSerializer(serializers.ModelSerializer):
         fields = ["id", "game", "group", "posted_by", "posted_at"]
 
 
+# serializers.py
+
 class GameParticipationSerializer(serializers.ModelSerializer):
     player = UserSerializer(read_only=True)
     player_id = serializers.IntegerField(write_only=True)
 
     class Meta:
         model = GameParticipation
-        fields = [
-            "id",
-            "player",
-            "player_id",
-            "game",
-            "rebuy",
-            "final_balance",
-            "created_at",
-        ]
+        fields = ["id", "player", "player_id", "game", "rebuy", "final_balance", "created_at"]
         read_only_fields = ["player", "game", "created_at"]
 
     def create(self, validated_data):
         validated_data["player_id"] = validated_data.pop("player_id")
-        participation = GameParticipation.objects.create(**validated_data)
-        return participation
+        return GameParticipation.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        # atualiza só os campos editáveis
+        instance.rebuy = validated_data.get("rebuy", instance.rebuy)
+        instance.final_balance = validated_data.get("final_balance", instance.final_balance)
+        instance.save()
+        return instance
+
 
 
 class GroupMiniSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
-        fields = ["id", "name", "slug"]
+        fields = ["id", "name", "slug", "created_by"]
 
 class GameSerializer(serializers.ModelSerializer):
     created_by = UserSerializer(read_only=True)
-
-    group = GroupMiniSerializer(read_only=True)  # 👈 agora vem com slug
+    group = GroupMiniSerializer(read_only=True)
+    group_id = serializers.IntegerField(write_only=True, required=True)
 
     participations = GameParticipationSerializer(many=True, read_only=True)
     participations_count = serializers.SerializerMethodField()
 
+    is_game_creator = serializers.SerializerMethodField()
+    is_group_creator = serializers.SerializerMethodField()
+
     class Meta:
         model = Game
         fields = [
-            "id",
-            "title",
-            "date",
-            "location",
-            "buy_in",
-            "created_by",
-            "created_at",
-            "group",
-            "participations",
-            "participations_count",
+            "id", "title", "date", "location", "buy_in",
+            "created_by", "created_at",
+            "group", "group_id",
+            "participations", "participations_count",
+            "is_game_creator", "is_group_creator",
         ]
         read_only_fields = ["created_by", "created_at"]
 
+    
     def get_participations_count(self, obj):
         return obj.participations.count()
+
+    def get_is_game_creator(self, obj):
+        user = self.context["request"].user
+        return obj.created_by_id == user.id
+
+    def get_is_group_creator(self, obj):
+        user = self.context["request"].user
+        return obj.group.created_by_id == user.id

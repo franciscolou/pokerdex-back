@@ -88,7 +88,7 @@ class GroupViewSet(viewsets.ModelViewSet):
             GroupMembership.objects.create(
                 user=self.request.user,
                 group=group,
-                role=GroupMembership.Role.ADMIN
+                role=GroupMembership.Role.OWNER
             )
 
     @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
@@ -111,7 +111,7 @@ class GroupViewSet(viewsets.ModelViewSet):
         url_path="promote/(?P<user_id>[^/.]+)",
         permission_classes=[IsAuthenticated, IsGroupAdmin]
     )
-    def promote(self, request, pk=None, user_id=None):
+    def promote(self, request, slug=None, user_id=None):
         group = self.get_object()
         target_user = get_object_or_404(GroupMembership, group=group, user_id=user_id)
 
@@ -128,7 +128,7 @@ class GroupViewSet(viewsets.ModelViewSet):
         url_path="demote/(?P<user_id>[^/.]+)",
         permission_classes=[IsAuthenticated, IsGroupAdmin]
     )
-    def demote(self, request, pk=None, user_id=None):
+    def demote(self, request, slug=None, user_id=None):
         group = self.get_object()
         target_user = get_object_or_404(GroupMembership, group=group, user_id=user_id)
 
@@ -193,6 +193,7 @@ class GroupViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         """Retorna detalhes mais completos."""
         group = self.get_object()
+        print("request:", request)
         serializer = GroupDetailSerializer(group, context={"request": request})
         return Response(serializer.data)
 
@@ -240,10 +241,22 @@ class GameViewSet(viewsets.ModelViewSet):
     serializer_class = GameSerializer
     permission_classes = [IsAuthenticated]
 
-    def perform_create(self, serializer):
-        game = serializer.save(created_by=self.request.user)
-        group_id = self.request.data.get("group")
 
+    def retrieve(self, request, *args, **kwargs):
+        self.get_serializer_context()
+        instance = self.get_object()
+        print("get_serializer_context:", self.get_serializer_context())
+        serializer = GameSerializer(
+            instance=instance, 
+            context=self.get_serializer_context(),
+        )
+        return Response(serializer.data)
+    
+    def perform_create(self, serializer):
+        print("TESTEAAAA")
+        game = serializer.save(created_by=self.request.user)
+        group_id = self.request.data.get("group_id")
+        print("self.request.data:", self.request.data)
         GamePost.objects.get_or_create(
             game=game,
             group_id=group_id,
@@ -252,13 +265,34 @@ class GameViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def add_participation(self, request, pk=None):
+        """
+        ADD ou EDITAR uma participation.
+        Se já houver participation para esse player, apenas atualiza.
+        """
         game = self.get_object()
-        serializer = GameParticipationSerializer(data=request.data)
+        player_id = request.data.get("player_id")
 
-        if serializer.is_valid():
-            serializer.save(game=game)
-            return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+        if not player_id:
+            return Response({"detail": "player_id é obrigatório"}, status=400)
+
+        rebuy = request.data.get("rebuy", 0)
+        final_balance = request.data.get("final_balance")
+
+        with transaction.atomic():
+            participation, created = GameParticipation.objects.update_or_create(
+                game=game,
+                player_id=player_id,
+                defaults={
+                    "rebuy": rebuy,
+                    "final_balance": final_balance,
+                }
+            )
+
+        return Response({
+            "id": participation.id,
+            "created": created,    # <--- útil para debug!
+            "message": "Criado com sucesso." if created else "Atualizado com sucesso."
+        })
 
 
 # ----------------------------------------------------

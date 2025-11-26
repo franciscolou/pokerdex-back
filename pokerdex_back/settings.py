@@ -2,6 +2,8 @@ from pathlib import Path
 import os
 import datetime
 
+AUTH_USER_MODEL = "api.User"
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-key")
@@ -33,6 +35,7 @@ INSTALLED_APPS = [
     "drf_yasg",
     "rest_framework",
     "api",
+    "django_extensions",
 ]
 
 MIDDLEWARE = [
