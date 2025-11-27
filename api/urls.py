@@ -7,6 +7,8 @@ from .views import (
     GroupRequestViewSet,
     GameViewSet,
     GameParticipationViewSet,
+    request_password_reset,
+    confirm_password_reset
 )
 
 router = DefaultRouter()
@@ -23,4 +25,6 @@ urlpatterns = [
     path("auth/login/", LoginView.as_view()),
     path("auth/logout/", LogoutView.as_view()),
     path("auth/me/", MeView.as_view()),
+    path("password_reset/", request_password_reset),
+    path("password_reset/confirm/", confirm_password_reset),
 ]

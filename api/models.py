@@ -5,9 +5,17 @@ from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
 
+
 class User(AbstractUser):
     email = models.EmailField(unique=True)
 
+class PasswordResetToken(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    token = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_valid(self):
+        return self.created_at >= timezone.now() - timezone.timedelta(hours=1)
 
 class Group(models.Model):
     """
