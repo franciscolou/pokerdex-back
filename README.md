@@ -122,3 +122,37 @@ Dentro de um grupo, um **Usuário** pode ter até 3 papéis (com permissões cum
 
 - Tentamos implementar o envio de **redefinição de senha por e-mail**, mas não conseguimos concluir a integração com provedores de e-mail, apesar de sabermos que não era obrigatória.
 Tudo indicava que estava chegando, mas o email não chegava.
+
+---
+
+# 🧪 Como rodar o projeto localmente
+
+## Backend (Django + Docker)
+
+No terminal, dentro da pasta do backend, execute:
+
+```bash
+# criar ambiente virtual
+python -m venv .venv
+
+# subir containers
+docker compose build
+docker compose up
+```
+
+Após isso, o backend já estará rodando e acessível via **http://localhost:8000**.
+
+---
+
+## Frontend (HTML + CSS + TS)
+
+Dentro da pasta do frontend, execute:
+
+```bash
+npm i
+npm run dev
+```
+
+O frontend ficará disponível normalmente em **http://localhost:5173**.
+
+---    
