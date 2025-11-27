@@ -194,25 +194,35 @@ class GroupViewSet(viewsets.ModelViewSet):
         user = request.user
 
         if user == group.created_by:
-            new_admin = (
+            new_owner = (
                 GroupMembership.objects
-                .filter(group=group)
+                .filter(group=group, role=GroupMembership.Role.ADMIN)
                 .exclude(user=user)
                 .order_by("joined_at")
                 .first()
             )
 
-            if new_admin:
-                group.created_by = new_admin.user
+            if not new_owner:
+                new_owner = (
+                    GroupMembership.objects
+                    .filter(group=group, role=GroupMembership.Role.MEMBER)
+                    .exclude(user=user)
+                    .order_by("joined_at")
+                    .first()
+                )
+
+            if new_owner:
+                group.created_by = new_owner.user
                 group.save()
-                new_admin.role = GroupMembership.Role.ADMIN
-                new_admin.save()
+                new_owner.role = GroupMembership.Role.ADMIN
+                new_owner.save()
             else:
                 group.delete()
                 return Response({"detail": "Grupo deletado."})
 
         GroupMembership.objects.filter(group=group, user=user).delete()
         return Response({"detail": "Você saiu do grupo."})
+
 
     def retrieve(self, request, *args, **kwargs):
         group = self.get_object()
