@@ -9,10 +9,6 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
 
 
-# ---------------------------------------------------------------------------
-# GROUP MODEL
-# ---------------------------------------------------------------------------
-
 class Group(models.Model):
     """
     Um grupo onde partidas podem ser postadas.
@@ -45,10 +41,6 @@ class Group(models.Model):
             self.slug = candidate
         super().save(*args, **kwargs)
 
-
-# ---------------------------------------------------------------------------
-# GROUP MEMBERSHIP
-# ---------------------------------------------------------------------------
 
 class GroupMembership(models.Model):
     """
@@ -87,10 +79,6 @@ class GroupMembership(models.Model):
     def __str__(self):
         return f"{self.user} @ {self.group} ({self.role})"
 
-
-# ---------------------------------------------------------------------------
-# GROUP INVITE
-# ---------------------------------------------------------------------------
 
 class GroupInvite(models.Model):
     """
@@ -131,10 +119,6 @@ class GroupInvite(models.Model):
         return f"Invite({target}) -> {self.group}"
 
 
-# ---------------------------------------------------------------------------
-# GROUP JOIN REQUEST
-# ---------------------------------------------------------------------------
-
 class GroupRequest(models.Model):
     """
     Pedido de um usuário para entrar em um grupo.
@@ -162,10 +146,6 @@ class GroupRequest(models.Model):
     def __str__(self):
         return f"Request({self.requested_by} -> {self.group})"
 
-
-# ---------------------------------------------------------------------------
-# GAME
-# ---------------------------------------------------------------------------
 
 class Game(models.Model):
     """
@@ -202,10 +182,6 @@ class Game(models.Model):
         return f"{label}"
 
 
-# ---------------------------------------------------------------------------
-# GAME POST
-# ---------------------------------------------------------------------------
-
 class GamePost(models.Model):
     """
     Relação explícita da partida com um grupo, incluindo quem postou e quando.
@@ -236,10 +212,6 @@ class GamePost(models.Model):
     def __str__(self):
         return f"{self.game} @ {self.group}"
 
-
-# ---------------------------------------------------------------------------
-# GAME PARTICIPATION
-# ---------------------------------------------------------------------------
 
 class GameParticipation(models.Model):
     """

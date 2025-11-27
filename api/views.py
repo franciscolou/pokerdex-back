@@ -22,15 +22,8 @@ from .permissions import (
     IsGameCreatorOrGroupCreator,
     IsSelfOrGameCreator,
 )
-
-
 from django.db.models import Count, Max
 
-# ----------------------------------------------------
-#
-# GROUPS
-#
-# ----------------------------------------------------
 
 class GroupViewSet(viewsets.ModelViewSet):
     queryset = Group.objects.all().select_related("created_by")
@@ -42,7 +35,7 @@ class GroupViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         user = request.user
 
-        # Meus grupos (onde sou membro)
+        
         my_groups = (
             Group.objects.filter(memberships__user=user)
             .annotate(
@@ -56,8 +49,7 @@ class GroupViewSet(viewsets.ModelViewSet):
         requested_groups = Group.objects.filter(
             join_requests__requested_by=user
         )
-
-        # Outros grupos (onde NÃO sou membro e que eu não solicitei)
+        
         other_groups = (
             Group.objects.exclude(memberships__user=user)
             .exclude(join_requests__requested_by=user)
@@ -68,8 +60,7 @@ class GroupViewSet(viewsets.ModelViewSet):
             )
             .distinct()
         )
-
-        # Serialização separada
+ 
         my_data = GroupSerializer(my_groups, many=True, context={"request": request}).data
         requested_data = GroupSerializer(requested_groups, many=True, context={"request": request}).data
         other_data = GroupSerializer(other_groups, many=True, context={"request": request}).data
@@ -145,7 +136,7 @@ class GroupViewSet(viewsets.ModelViewSet):
         url_path="remove/(?P<user_id>[^/.]+)",
         permission_classes=[IsAuthenticated, IsGroupAdmin]
     )
-    def remove_member(self, request, pk=None, user_id=None):
+    def remove_member(self, request, slug=None, user_id=None):
         group = self.get_object()
 
         if int(user_id) == group.created_by_id:
@@ -162,13 +153,12 @@ class GroupViewSet(viewsets.ModelViewSet):
         methods=["post"],
         permission_classes=[IsAuthenticated]
     )
-    def leave(self, request, pk=None):
+    def leave(self, request, slug=None):
         """Lógica completa para transferência de criador e saída."""
         group = self.get_object()
         user = request.user
 
-        if user == group.created_by:
-            # transfer logic
+        if user == group.created_by:       
             new_admin = (
                 GroupMembership.objects
                 .filter(group=group)
@@ -193,16 +183,9 @@ class GroupViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         """Retorna detalhes mais completos."""
         group = self.get_object()
-        print("request:", request)
         serializer = GroupDetailSerializer(group, context={"request": request})
         return Response(serializer.data)
 
-
-# ----------------------------------------------------
-#
-# GROUP REQUESTS
-#
-# ----------------------------------------------------
 
 class GroupRequestViewSet(viewsets.ModelViewSet):
     queryset = GroupRequest.objects.all().select_related("group", "requested_by")
@@ -230,11 +213,6 @@ class GroupRequestViewSet(viewsets.ModelViewSet):
         join_request.delete()
         return Response({"detail": "Pedido aceito."})
 
-# ----------------------------------------------------
-#
-# GAMES
-#
-# ----------------------------------------------------
 
 class GameViewSet(viewsets.ModelViewSet):
     queryset = Game.objects.all().select_related("created_by")
@@ -245,7 +223,6 @@ class GameViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         self.get_serializer_context()
         instance = self.get_object()
-        print("get_serializer_context:", self.get_serializer_context())
         serializer = GameSerializer(
             instance=instance, 
             context=self.get_serializer_context(),
@@ -253,10 +230,8 @@ class GameViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
     
     def perform_create(self, serializer):
-        print("TESTEAAAA")
         game = serializer.save(created_by=self.request.user)
         group_id = self.request.data.get("group_id")
-        print("self.request.data:", self.request.data)
         GamePost.objects.get_or_create(
             game=game,
             group_id=group_id,
@@ -271,7 +246,6 @@ class GameViewSet(viewsets.ModelViewSet):
         """
         game = self.get_object()
         player_id = request.data.get("player_id")
-
         if not player_id:
             return Response({"detail": "player_id é obrigatório"}, status=400)
 
@@ -290,16 +264,28 @@ class GameViewSet(viewsets.ModelViewSet):
 
         return Response({
             "id": participation.id,
-            "created": created,    # <--- útil para debug!
+            "created": created,    
             "message": "Criado com sucesso." if created else "Atualizado com sucesso."
         })
+    
+    @action(detail=True, methods=["post"])
+    def remove_participation(self, request, pk=None):
+        """
+        Remover participação de um player.
+        """
+        player_id = request.data.get("player_id")
+        if not player_id:
+            return Response({"detail": "player_id é obrigatório"}, status=400)
+        
+        deleted, _ = GameParticipation.objects.filter(
+            game_id=pk, player_id=player_id
+        ).delete()
 
+        return Response({
+            "removed": deleted > 0,
+            "message": "Removido com sucesso." if deleted else "Nenhuma participação encontrada."
+        })
 
-# ----------------------------------------------------
-#
-# GAME PARTICIPATIONS
-#
-# ----------------------------------------------------
 
 class GameParticipationViewSet(viewsets.ModelViewSet):
     queryset = GameParticipation.objects.all()

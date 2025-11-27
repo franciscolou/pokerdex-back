@@ -139,8 +139,6 @@ class GamePostSerializer(serializers.ModelSerializer):
         fields = ["id", "game", "group", "posted_by", "posted_at"]
 
 
-# serializers.py
-
 class GameParticipationSerializer(serializers.ModelSerializer):
     player = UserSerializer(read_only=True)
     player_id = serializers.IntegerField(write_only=True)
@@ -155,7 +153,6 @@ class GameParticipationSerializer(serializers.ModelSerializer):
         return GameParticipation.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
-        # atualiza só os campos editáveis
         instance.rebuy = validated_data.get("rebuy", instance.rebuy)
         instance.final_balance = validated_data.get("final_balance", instance.final_balance)
         instance.save()
