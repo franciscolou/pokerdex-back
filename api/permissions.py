@@ -1,19 +1,8 @@
-from rest_framework.permissions import BasePermission, SAFE_METHODS
-from django.shortcuts import get_object_or_404
-
-from .models import (
-    Group,
-    GroupMembership,
-    Game,
-    GameParticipation,
-)
+from rest_framework.permissions import BasePermission
+from .models import Group, GroupMembership, Game, GameParticipation
 
 
 class IsGroupMember(BasePermission):
-    """
-    Permite ação apenas se o usuário é membro do grupo.
-    """
-
     def has_object_permission(self, request, view, obj):
         user = request.user
 
@@ -21,17 +10,13 @@ class IsGroupMember(BasePermission):
             return GroupMembership.objects.filter(group=obj, user=user).exists()
 
         if hasattr(obj, "group"):
-            group = getattr(obj, "group")
+            group = obj.group
             return GroupMembership.objects.filter(group=group, user=user).exists()
 
         return False
 
 
 class IsGroupAdmin(BasePermission):
-    """
-    Permite apenas admins do grupo.
-    """
-
     def has_object_permission(self, request, view, obj):
         user = request.user
 
@@ -42,6 +27,9 @@ class IsGroupAdmin(BasePermission):
         else:
             return False
 
+        if group.created_by_id == user.id:
+            return True
+
         return GroupMembership.objects.filter(
             group=group,
             user=user,
@@ -50,10 +38,6 @@ class IsGroupAdmin(BasePermission):
 
 
 class IsGroupCreator(BasePermission):
-    """
-    Permite apenas o criador do grupo.
-    """
-
     def has_object_permission(self, request, view, obj):
         user = request.user
 
@@ -67,12 +51,6 @@ class IsGroupCreator(BasePermission):
 
 
 class IsGameCreatorOrGroupCreator(BasePermission):
-    """
-    Permite editar/excluir partida se:
-    - usuário criou o jogo OU
-    - usuário criou o grupo ao qual o jogo pertence
-    """
-
     def has_object_permission(self, request, view, obj):
         if not isinstance(obj, Game):
             return False
@@ -82,20 +60,10 @@ class IsGameCreatorOrGroupCreator(BasePermission):
         if obj.created_by_id == user.id:
             return True
 
-        return Group.objects.filter(
-            id__in=obj.groups.values_list("id", flat=True),
-            created_by=user,
-        ).exists()
+        return obj.group.created_by_id == user.id
 
 
 class IsSelfOrGameCreator(BasePermission):
-    """
-    Permite editar participação se:
-    - o jogador é o próprio usuário OU
-    - o usuário criou o jogo OU
-    - o usuário criou o grupo ao qual o jogo pertence
-    """
-
     def has_object_permission(self, request, view, obj):
         if not isinstance(obj, GameParticipation):
             return False
@@ -109,7 +77,4 @@ class IsSelfOrGameCreator(BasePermission):
         if game.created_by_id == user.id:
             return True
 
-        return Group.objects.filter(
-            id__in=game.groups.values_list("id", flat=True),
-            created_by=user,
-        ).exists()
+        return game.group.created_by_id == user.id

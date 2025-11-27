@@ -116,7 +116,9 @@ class GroupDetailSerializer(serializers.ModelSerializer):
     def get_join_requests(self, obj):
         user = self.context["request"].user
         if not GroupMembership.objects.filter(
-            group=obj, user=user, role=GroupMembership.Role.ADMIN
+            group=obj,
+            user=user,
+            role__in=[GroupMembership.Role.ADMIN, GroupMembership.Role.OWNER],
         ).exists():
             return []
         requests = obj.join_requests.select_related("requested_by").order_by("-created_at")
