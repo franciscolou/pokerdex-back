@@ -122,6 +122,7 @@ Dentro de um grupo, um **Usuário** pode ter até 3 papéis (com permissões cum
 
 - Tentamos implementar o envio de **redefinição de senha por e-mail**, mas não conseguimos concluir a integração com provedores de e-mail, apesar de sabermos que não era obrigatória.
 Tudo indicava que estava chegando, mas o email não chegava.
+- O Swagger está funcionando localmente de forma perfeita, mas em produção é adicionada uma proteção a mais de autenticação e não soubemos como removê-la.
 
 ---
 
