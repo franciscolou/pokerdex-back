@@ -34,12 +34,11 @@ urlpatterns = [
     ),
     path(
         "docs/swagger/",
-        csrf_exempt(schema_view.with_ui("swagger", cache_timeout=0)),
         name="schema-swagger-ui",
     ),
     path(
         "docs/redoc/",
-        csrf_exempt(schema_view.with_ui("redoc", cache_timeout=0)),
         name="schema-redoc",
     ),
 ]
+
