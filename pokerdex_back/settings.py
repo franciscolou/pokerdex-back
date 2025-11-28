@@ -19,6 +19,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://pokerdex-6yws.onrender.com"
 ]
 
+FRONTEND_PROD = "https://pokerdex-6yws.onrender.com/src/pages/group_list.html"
+
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_HEADERS = ["authorization", "content-type", "accept", "origin"]
@@ -54,7 +56,7 @@ ROOT_URLCONF = "pokerdex_back.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

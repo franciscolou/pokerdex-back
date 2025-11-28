@@ -1,9 +1,10 @@
+from django.conf import settings
 from django.contrib import admin
+from django.shortcuts import render
 from django.urls import path, include, re_path
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-
 schema_view = get_schema_view(
     openapi.Info(
         title="Pokerdex API",
@@ -17,7 +18,12 @@ schema_view = get_schema_view(
     permission_classes=(permissions.AllowAny,),
 )
 
+def redirect_root(request):
+    return render(request, "index.html")
+
+
 urlpatterns = [
+    path("", redirect_root),
     path("admin/", admin.site.urls),
     path("api/", include("api.urls")),
     re_path(
