@@ -134,6 +134,7 @@ No terminal, dentro da pasta do backend, execute:
 ```bash
 # criar ambiente virtual
 python -m venv .venv
+pip install -r requirements.txt
 
 # criar banco de dados
 python manage.py makemigrations
