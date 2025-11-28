@@ -17,7 +17,6 @@ ALLOWED_HOSTS = ["*"]
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://pokerdex-6yws.onrender.com"
-    "http://10.17.236.178",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -101,4 +100,5 @@ SWAGGER_SETTINGS = {
         }
     }
 }
+
 
