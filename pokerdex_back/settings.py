@@ -78,7 +78,12 @@ DATABASES = {
     }
 }
 
-STATIC_URL = "static/"
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # PRODUÇÃO
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'templates',  # opcional
+]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
