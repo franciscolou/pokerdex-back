@@ -135,6 +135,10 @@ No terminal, dentro da pasta do backend, execute:
 # criar ambiente virtual
 python -m venv .venv
 
+# criar banco de dados
+python manage.py makemigrations
+python manage.py migrate
+
 # subir containers
 docker compose build
 docker compose up
